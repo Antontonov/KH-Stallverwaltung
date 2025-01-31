@@ -9,9 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
-import { Plus, Edit, Calendar } from "lucide-react";
+import { Plus, Edit } from "lucide-react";
 import type { SelectHorse } from "@db/schema";
 import { format } from "date-fns";
+import { DocumentManager } from "@/components/document-manager";
+import { ProfileImageUpload } from "@/components/profile-image-upload";
 
 export default function HorsesPage() {
   const { toast } = useToast();
@@ -24,7 +26,7 @@ export default function HorsesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/horses"] });
-      toast({ title: "Horse created successfully" });
+      toast({ title: "Pferd erfolgreich erstellt" });
     },
   });
 
@@ -35,24 +37,24 @@ export default function HorsesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/horses"] });
-      toast({ title: "Horse updated successfully" });
+      toast({ title: "Pferd erfolgreich aktualisiert" });
     },
   });
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Horses</h1>
+        <h1 className="text-3xl font-bold">Pferde</h1>
         <Dialog>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Add Horse
+              Pferd hinzufügen
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Horse</DialogTitle>
+              <DialogTitle>Neues Pferd hinzufügen</DialogTitle>
             </DialogHeader>
             <HorseForm onSubmit={(data) => createHorseMutation.mutate(data)} />
           </DialogContent>
@@ -64,25 +66,38 @@ export default function HorsesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-40">Bild</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Breed</TableHead>
-                <TableHead>Height (cm)</TableHead>
-                <TableHead>Next Vet Appointment</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Alter</TableHead>
+                <TableHead>Rasse</TableHead>
+                <TableHead>Größe (cm)</TableHead>
+                <TableHead>Nächster Tierarzttermin</TableHead>
+                <TableHead>Aktionen</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {horses?.map((horse) => (
                 <TableRow key={horse.id}>
+                  <TableCell>
+                    <ProfileImageUpload
+                      currentImageUrl={horse.profile_image_url}
+                      onUploadComplete={(url) =>
+                        updateHorseMutation.mutate({
+                          id: horse.id,
+                          profile_image_url: url,
+                        })
+                      }
+                      className="w-24 h-24"
+                    />
+                  </TableCell>
                   <TableCell>{horse.name}</TableCell>
                   <TableCell>{horse.age}</TableCell>
                   <TableCell>{horse.breed}</TableCell>
                   <TableCell>{horse.height}</TableCell>
                   <TableCell>
-                    {horse.nextVetAppointment
-                      ? format(new Date(horse.nextVetAppointment), "PP")
-                      : "Not scheduled"}
+                    {horse.next_vet_appointment
+                      ? format(new Date(horse.next_vet_appointment), "dd.MM.yyyy")
+                      : "Nicht geplant"}
                   </TableCell>
                   <TableCell>
                     <Dialog>
@@ -93,13 +108,17 @@ export default function HorsesPage() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Edit Horse</DialogTitle>
+                          <DialogTitle>Pferd bearbeiten</DialogTitle>
                         </DialogHeader>
                         <HorseForm
                           horse={horse}
                           onSubmit={(data) =>
                             updateHorseMutation.mutate({ ...data, id: horse.id })
                           }
+                        />
+                        <DocumentManager
+                          entityType="horse"
+                          entityId={horse.id}
                         />
                       </DialogContent>
                     </Dialog>
@@ -124,8 +143,8 @@ function HorseForm({
   const form = useForm<Partial<SelectHorse>>({
     defaultValues: {
       ...horse,
-      nextVetAppointment: horse?.nextVetAppointment
-        ? format(new Date(horse.nextVetAppointment), 'yyyy-MM-dd')
+      next_vet_appointment: horse?.next_vet_appointment
+        ? format(new Date(horse.next_vet_appointment), 'yyyy-MM-dd')
         : undefined
     },
   });
@@ -134,7 +153,7 @@ function HorseForm({
     // Convert the date string to a proper Date object
     const formattedData = {
       ...data,
-      nextVetAppointment: data.nextVetAppointment ? new Date(data.nextVetAppointment).toISOString() : null
+      next_vet_appointment: data.next_vet_appointment ? new Date(data.next_vet_appointment).toISOString() : null
     };
     onSubmit(formattedData);
   };
@@ -160,7 +179,7 @@ function HorseForm({
           name="age"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Age</FormLabel>
+              <FormLabel>Alter</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -178,7 +197,7 @@ function HorseForm({
           name="breed"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Breed</FormLabel>
+              <FormLabel>Rasse</FormLabel>
               <FormControl>
                 <Input {...field} value={field.value || ''} />
               </FormControl>
@@ -191,7 +210,7 @@ function HorseForm({
           name="height"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Height (cm)</FormLabel>
+              <FormLabel>Größe (cm)</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -206,10 +225,10 @@ function HorseForm({
         />
         <FormField
           control={form.control}
-          name="nextVetAppointment"
+          name="next_vet_appointment"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Next Vet Appointment</FormLabel>
+              <FormLabel>Nächster Tierarzttermin</FormLabel>
               <FormControl>
                 <Input
                   type="date"
@@ -222,7 +241,7 @@ function HorseForm({
           )}
         />
         <Button type="submit" className="w-full">
-          {horse ? "Update Horse" : "Add Horse"}
+          {horse ? "Pferd aktualisieren" : "Pferd hinzufügen"}
         </Button>
       </form>
     </Form>

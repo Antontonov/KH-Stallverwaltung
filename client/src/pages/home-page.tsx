@@ -10,15 +10,15 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Welcome, {user?.firstName}!</h1>
+        <h1 className="text-4xl font-bold mb-8">Willkommen, {user?.first_name}!</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link href="/horses">
             <Card className="cursor-pointer hover:bg-accent transition-colors">
               <CardHeader>
                 <PawPrint className="w-8 h-8 mb-2" />
-                <CardTitle>Horses</CardTitle>
-                <CardDescription>Manage horses and their information</CardDescription>
+                <CardTitle>Pferde</CardTitle>
+                <CardDescription>Pferde und deren Informationen verwalten</CardDescription>
               </CardHeader>
             </Card>
           </Link>
@@ -27,8 +27,8 @@ export default function HomePage() {
             <Card className="cursor-pointer hover:bg-accent transition-colors">
               <CardHeader>
                 <Calendar className="w-8 h-8 mb-2" />
-                <CardTitle>Calendar</CardTitle>
-                <CardDescription>Schedule and manage appointments</CardDescription>
+                <CardTitle>Kalender</CardTitle>
+                <CardDescription>Termine planen und verwalten</CardDescription>
               </CardHeader>
             </Card>
           </Link>
@@ -37,8 +37,8 @@ export default function HomePage() {
             <Card className="cursor-pointer hover:bg-accent transition-colors">
               <CardHeader>
                 <Users className="w-8 h-8 mb-2" />
-                <CardTitle>Users</CardTitle>
-                <CardDescription>Manage users and roles</CardDescription>
+                <CardTitle>Benutzer</CardTitle>
+                <CardDescription>Benutzer und Rollen verwalten</CardDescription>
               </CardHeader>
             </Card>
           </Link>

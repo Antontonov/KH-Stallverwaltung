@@ -4,9 +4,26 @@ import { format } from "date-fns";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
+import { DocumentManager } from "@/components/document-manager";
+import { ProfileImageUpload } from "@/components/profile-image-upload";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { profile_image_url: string }) => {
+      const res = await apiRequest("PATCH", `/api/users/${user?.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: "Profilbild erfolgreich aktualisiert" });
+    },
+  });
 
   if (!user) return null;
 
@@ -22,7 +39,16 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      <Card>
+      <div className="mb-8 flex justify-center">
+        <ProfileImageUpload
+          currentImageUrl={user.profile_image_url}
+          onUploadComplete={(url) =>
+            updateProfileMutation.mutate({ profile_image_url: url })
+          }
+        />
+      </div>
+
+      <Card className="mb-8">
         <CardHeader>
           <CardTitle>Persönliche Informationen</CardTitle>
         </CardHeader>
@@ -49,6 +75,8 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      <DocumentManager entityType="user" entityId={user.id} />
     </div>
   );
 }

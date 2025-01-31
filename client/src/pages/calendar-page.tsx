@@ -29,12 +29,12 @@ export default function CalendarPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
-      toast({ title: "Appointment created successfully" });
+      toast({ title: "Termin erfolgreich erstellt" });
     },
   });
 
   const groupedAppointments = appointments?.reduce((acc, appointment) => {
-    const date = format(parseISO(appointment.startTime.toString()), "yyyy-MM-dd");
+    const date = format(parseISO(appointment.start_time.toString()), "yyyy-MM-dd");
     if (!acc[date]) {
       acc[date] = [];
     }
@@ -45,17 +45,17 @@ export default function CalendarPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Calendar</h1>
+        <h1 className="text-3xl font-bold">Kalender</h1>
         <Dialog>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Add Appointment
+              Termin hinzufügen
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Appointment</DialogTitle>
+              <DialogTitle>Neuer Termin</DialogTitle>
             </DialogHeader>
             <AppointmentForm
               horses={horses || []}
@@ -78,7 +78,7 @@ export default function CalendarPage() {
 
         <Card>
           <CardContent className="p-4">
-            <h2 className="text-xl font-semibold mb-4">Appointments</h2>
+            <h2 className="text-xl font-semibold mb-4">Termine</h2>
             <div className="space-y-4">
               {appointments?.map((appointment) => (
                 <Card key={appointment.id}>
@@ -92,10 +92,10 @@ export default function CalendarPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm">
-                          {format(parseISO(appointment.startTime.toString()), "PP p")}
+                          {format(parseISO(appointment.start_time.toString()), "PP p")}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          to {format(parseISO(appointment.endTime.toString()), "p")}
+                          bis {format(parseISO(appointment.end_time.toString()), "p")}
                         </p>
                       </div>
                     </div>
@@ -122,8 +122,8 @@ function AppointmentForm({
   const handleSubmit = (data: Partial<SelectAppointment>) => {
     const formattedData = {
       ...data,
-      startTime: data.startTime ? new Date(data.startTime).toISOString() : undefined,
-      endTime: data.endTime ? new Date(data.endTime).toISOString() : undefined,
+      start_time: data.start_time ? new Date(data.start_time).toISOString() : undefined,
+      end_time: data.end_time ? new Date(data.end_time).toISOString() : undefined,
     };
     onSubmit(formattedData);
   };
@@ -136,7 +136,7 @@ function AppointmentForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Titel</FormLabel>
               <FormControl>
                 <Input {...field} value={field.value || ''} />
               </FormControl>
@@ -149,7 +149,7 @@ function AppointmentForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Beschreibung</FormLabel>
               <FormControl>
                 <Textarea {...field} value={field.value || ''} />
               </FormControl>
@@ -159,17 +159,17 @@ function AppointmentForm({
         />
         <FormField
           control={form.control}
-          name="horseId"
+          name="horse_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Horse</FormLabel>
+              <FormLabel>Pferd</FormLabel>
               <Select
                 onValueChange={(value) => field.onChange(parseInt(value))}
                 value={field.value?.toString()}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a horse" />
+                    <SelectValue placeholder="Pferd auswählen" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -187,10 +187,10 @@ function AppointmentForm({
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="startTime"
+            name="start_time"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Start Time</FormLabel>
+                <FormLabel>Startzeit</FormLabel>
                 <FormControl>
                   <Input 
                     type="datetime-local" 
@@ -204,10 +204,10 @@ function AppointmentForm({
           />
           <FormField
             control={form.control}
-            name="endTime"
+            name="end_time"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>End Time</FormLabel>
+                <FormLabel>Endzeit</FormLabel>
                 <FormControl>
                   <Input 
                     type="datetime-local" 
@@ -221,7 +221,7 @@ function AppointmentForm({
           />
         </div>
         <Button type="submit" className="w-full">
-          Create Appointment
+          Termin erstellen
         </Button>
       </form>
     </Form>
