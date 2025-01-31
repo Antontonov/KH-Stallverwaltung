@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, date, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -8,17 +8,30 @@ export const roles = pgTable("roles", {
   name: text("name").notNull(),
 });
 
+// Event groups for calendar
+export const eventGroups = pgTable("event_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+});
+
 // Users table with extended profile information
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
-  firstName: text("firstName").notNull(),
-  lastName: text("lastName").notNull(),
+  first_name: text("first_name").notNull(),
+  last_name: text("last_name").notNull(),
   address: text("address").notNull(),
-  bankAccount: text("bankAccount").notNull(),
-  birthDate: date("birthDate").notNull(),
-  roleId: integer("roleId").references(() => roles.id),
+  bank_account: text("bank_account").notNull(),
+  birth_date: date("birth_date").notNull(),
+  role_id: integer("role_id").references(() => roles.id),
+});
+
+// User-Event Group relations
+export const userEventGroups = pgTable("user_event_groups", {
+  user_id: integer("user_id").references(() => users.id),
+  group_id: integer("group_id").references(() => eventGroups.id),
 });
 
 // Horses table
@@ -28,9 +41,9 @@ export const horses = pgTable("horses", {
   age: integer("age").notNull(),
   breed: text("breed").notNull(),
   height: integer("height").notNull(), // in cm
-  nextVetAppointment: date("nextVetAppointment"),
-  ownerId: integer("ownerId").references(() => users.id),
-  stableId: integer("stableId").references(() => stables.id),
+  next_vet_appointment: date("next_vet_appointment"),
+  owner_id: integer("owner_id").references(() => users.id),
+  stable_id: integer("stable_id").references(() => stables.id),
 });
 
 // Stables/Boxes table
@@ -38,7 +51,7 @@ export const stables = pgTable("stables", {
   id: serial("id").primaryKey(),
   number: text("number").unique().notNull(),
   occupied: boolean("occupied").default(false),
-  currentTenantId: integer("currentTenantId").references(() => users.id),
+  current_tenant_id: integer("current_tenant_id").references(() => users.id),
 });
 
 // Appointments/Calendar events
@@ -46,49 +59,61 @@ export const appointments = pgTable("appointments", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
-  startTime: timestamp("startTime").notNull(),
-  endTime: timestamp("endTime").notNull(),
-  horseId: integer("horseId").references(() => horses.id),
-  assignedToId: integer("assignedToId").references(() => users.id),
-  createdById: integer("createdById").references(() => users.id),
+  start_time: timestamp("start_time").notNull(),
+  end_time: timestamp("end_time").notNull(),
+  horse_id: integer("horse_id").references(() => horses.id),
+  assigned_to_id: integer("assigned_to_id").references(() => users.id),
+  created_by_id: integer("created_by_id").references(() => users.id),
+  event_group_id: integer("event_group_id").references(() => eventGroups.id),
+  recurrence_pattern: jsonb("recurrence_pattern"), // Store recurrence info as JSON
 });
 
 // Relations
 export const userRelations = relations(users, ({ one, many }) => ({
   role: one(roles, {
-    fields: [users.roleId],
+    fields: [users.role_id],
     references: [roles.id],
   }),
   horses: many(horses),
   stable: one(stables, {
     fields: [users.id],
-    references: [stables.currentTenantId],
+    references: [stables.current_tenant_id],
   }),
+  eventGroups: many(userEventGroups),
+}));
+
+export const eventGroupRelations = relations(eventGroups, ({ many }) => ({
+  users: many(userEventGroups),
+  appointments: many(appointments),
 }));
 
 export const horseRelations = relations(horses, ({ one }) => ({
   owner: one(users, {
-    fields: [horses.ownerId],
+    fields: [horses.owner_id],
     references: [users.id],
   }),
   stable: one(stables, {
-    fields: [horses.stableId],
+    fields: [horses.stable_id],
     references: [stables.id],
   }),
 }));
 
 export const appointmentRelations = relations(appointments, ({ one }) => ({
   horse: one(horses, {
-    fields: [appointments.horseId],
+    fields: [appointments.horse_id],
     references: [horses.id],
   }),
   assignedTo: one(users, {
-    fields: [appointments.assignedToId],
+    fields: [appointments.assigned_to_id],
     references: [users.id],
   }),
   createdBy: one(users, {
-    fields: [appointments.createdById],
+    fields: [appointments.created_by_id],
     references: [users.id],
+  }),
+  eventGroup: one(eventGroups, {
+    fields: [appointments.event_group_id],
+    references: [eventGroups.id],
   }),
 }));
 
@@ -99,6 +124,8 @@ export const insertHorseSchema = createInsertSchema(horses);
 export const selectHorseSchema = createSelectSchema(horses);
 export const insertAppointmentSchema = createInsertSchema(appointments);
 export const selectAppointmentSchema = createSelectSchema(appointments);
+export const insertEventGroupSchema = createInsertSchema(eventGroups);
+export const selectEventGroupSchema = createSelectSchema(eventGroups);
 
 // Types
 export type InsertUser = typeof users.$inferInsert;
@@ -107,3 +134,5 @@ export type InsertHorse = typeof horses.$inferInsert;
 export type SelectHorse = typeof horses.$inferSelect;
 export type InsertAppointment = typeof appointments.$inferInsert;
 export type SelectAppointment = typeof appointments.$inferSelect;
+export type InsertEventGroup = typeof eventGroups.$inferInsert;
+export type SelectEventGroup = typeof eventGroups.$inferSelect;
