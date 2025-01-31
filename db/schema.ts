@@ -1,6 +1,6 @@
 import { pgTable, text, serial, integer, boolean, date, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { relations } from "drizzle-orm";
+import { relations, eq } from "drizzle-orm";
 
 // Enums
 export const documentTypeEnum = pgEnum("document_type", ["invoice", "other"]);
@@ -125,7 +125,11 @@ export const horseRelations = relations(horses, ({ one, many }) => ({
     fields: [horses.stable_id],
     references: [stables.id],
   }),
-  documents: many(documents),
+  documents: many(documents, {
+    fields: [],
+    references: [documents.entity_id],
+    filterBy: (documents) => eq(documents.entity_type, "horse"),
+  }),
 }));
 
 export const documentRelations = relations(documents, ({ one }) => ({

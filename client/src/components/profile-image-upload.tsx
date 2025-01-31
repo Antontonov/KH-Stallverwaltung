@@ -2,7 +2,6 @@ import { useToast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-// import { apiRequest } from "@/lib/queryClient"; //Removed as per intention
 
 interface ProfileImageUploadProps {
   currentImageUrl?: string | null;
