@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Home,
   PawPrint,
@@ -7,10 +8,17 @@ import {
   Users,
   LogOut,
   User,
-  Settings
+  Settings,
+  Menu,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +29,7 @@ import {
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const isMobile = useIsMobile();
 
   const navItems = [
     { href: "/", icon: Home, label: "Dashboard" },
@@ -29,9 +38,9 @@ export function Sidebar() {
     { href: "/users", icon: Users, label: "Benutzer" },
   ];
 
-  return (
-    <div className="min-h-screen w-64 bg-sidebar border-r border-border">
-      <div className="p-6">
+  const SidebarContent = () => (
+    <div className="h-full flex flex-col">
+      <div className="p-6 flex-1">
         <h2 className="text-2xl font-bold text-sidebar-foreground mb-6">
           Stallverwaltung
         </h2>
@@ -40,7 +49,7 @@ export function Sidebar() {
             <Link key={item.href} href={item.href}>
               <a
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
+                  "flex items-center gap-3 px-3 py-3 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
                   location === item.href && "bg-sidebar-accent"
                 )}
               >
@@ -52,7 +61,7 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="absolute bottom-0 w-64 p-6 border-t border-border">
+      <div className="p-6 border-t border-border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <User className="w-5 h-5 mr-2" />
@@ -91,6 +100,33 @@ export function Sidebar() {
           Abmelden
         </Button>
       </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="fixed top-4 left-4 z-40"
+            >
+              <Menu className="w-6 h-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80 p-0">
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-64 bg-sidebar border-r border-border">
+      <SidebarContent />
     </div>
   );
 }
