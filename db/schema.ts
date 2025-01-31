@@ -125,11 +125,7 @@ export const horseRelations = relations(horses, ({ one, many }) => ({
     fields: [horses.stable_id],
     references: [stables.id],
   }),
-  documents: many(documents, {
-    fields: [],
-    references: [documents.entity_id],
-    filterBy: (documents) => eq(documents.entity_type, "horse"),
-  }),
+  documents: many(documents),
 }));
 
 export const documentRelations = relations(documents, ({ one }) => ({
