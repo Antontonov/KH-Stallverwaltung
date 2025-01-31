@@ -10,7 +10,10 @@ import {
   User,
   Settings,
   Menu,
-  X
+  X,
+  ChevronLeft,
+  Sun,
+  Moon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -24,12 +27,22 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useState, useEffect } from "react";
 
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const isMobile = useIsMobile();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(
+    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   const navItems = [
     { href: "/", icon: Home, label: "Dashboard" },
@@ -38,12 +51,34 @@ export function Sidebar() {
     { href: "/users", icon: Users, label: "Benutzer" },
   ];
 
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
   const SidebarContent = () => (
     <div className="h-full flex flex-col">
       <div className="p-6 flex-1">
-        <h2 className="text-2xl font-bold text-sidebar-foreground mb-6">
-          Stallverwaltung
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className={cn(
+            "text-2xl font-bold text-sidebar-foreground transition-all duration-200",
+            isCollapsed && "opacity-0 w-0"
+          )}>
+            Stallverwaltung
+          </h2>
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="shrink-0"
+            >
+              <ChevronLeft className={cn(
+                "w-4 h-4 transition-transform duration-200",
+                isCollapsed && "rotate-180"
+              )} />
+            </Button>
+          )}
+        </div>
         <nav className="space-y-2">
           {navItems.map((item) => (
             <Link key={item.href} href={item.href}>
@@ -53,8 +88,13 @@ export function Sidebar() {
                   location === item.href && "bg-sidebar-accent"
                 )}
               >
-                <item.icon className="w-5 h-5" />
-                {item.label}
+                <item.icon className="w-5 h-5 shrink-0" />
+                <span className={cn(
+                  "transition-all duration-200",
+                  isCollapsed && "opacity-0 w-0"
+                )}>
+                  {item.label}
+                </span>
               </a>
             </Link>
           ))}
@@ -63,8 +103,11 @@ export function Sidebar() {
 
       <div className="p-6 border-t border-border">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <User className="w-5 h-5 mr-2" />
+          <div className={cn(
+            "flex items-center transition-all duration-200",
+            isCollapsed && "opacity-0 w-0"
+          )}>
+            <User className="w-5 h-5 mr-2 shrink-0" />
             <span className="text-sm font-medium">
               {user?.first_name} {user?.last_name}
             </span>
@@ -88,16 +131,38 @@ export function Sidebar() {
                   Profil bearbeiten
                 </DropdownMenuItem>
               </Link>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={toggleTheme}>
+                {theme === 'light' ? (
+                  <>
+                    <Moon className="w-4 h-4 mr-2" />
+                    Dark Mode
+                  </>
+                ) : (
+                  <>
+                    <Sun className="w-4 h-4 mr-2" />
+                    Light Mode
+                  </>
+                )}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className={cn(
+            "w-full justify-start",
+            isCollapsed && "w-10 px-0 justify-center"
+          )}
           onClick={() => logoutMutation.mutate()}
         >
-          <LogOut className="w-4 h-4 mr-2" />
-          Abmelden
+          <LogOut className="w-4 h-4 shrink-0" />
+          <span className={cn(
+            "ml-2 transition-all duration-200",
+            isCollapsed && "opacity-0 w-0"
+          )}>
+            Abmelden
+          </span>
         </Button>
       </div>
     </div>
@@ -125,7 +190,10 @@ export function Sidebar() {
   }
 
   return (
-    <div className="min-h-screen w-64 bg-sidebar border-r border-border">
+    <div className={cn(
+      "min-h-screen bg-sidebar border-r border-border transition-all duration-200",
+      isCollapsed ? "w-[4.5rem]" : "w-64"
+    )}>
       <SidebarContent />
     </div>
   );
