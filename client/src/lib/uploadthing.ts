@@ -1,5 +1,1 @@
-import { generateComponents } from "@uploadthing/react";
-import type { OurFileRouter } from "../../../server/uploadthing";
-
-export const { UploadButton, UploadDropzone, Uploader } =
-  generateComponents<OurFileRouter>();
+// Diese Datei wird nicht mehr benötigt und kann gelöscht werden

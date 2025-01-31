@@ -9,21 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { Upload, FileText, File } from "lucide-react";
 import { format } from "date-fns";
-import { UploadButton } from "@/lib/uploadthing";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import type { SelectDocument } from "@db/schema";
 
 interface DocumentManagerProps {
   entityType: "user" | "horse";
   entityId: number;
 }
-
-type UploadResponse = {
-  name: string;
-  size: number;
-  key: string;
-  url: string;
-};
 
 export function DocumentManager({ entityType, entityId }: DocumentManagerProps) {
   const { toast } = useToast();
@@ -33,9 +25,47 @@ export function DocumentManager({ entityType, entityId }: DocumentManagerProps) 
 
   const form = useForm<{ title: string; documentType: "invoice" | "other" }>();
 
+  const handleFileUpload = async (file: File, formData: { title: string; documentType: string }) => {
+    const uploadFormData = new FormData();
+    uploadFormData.append("document", file);
+
+    try {
+      const uploadResponse = await fetch("/api/upload/document", {
+        method: "POST",
+        body: uploadFormData,
+        credentials: "include",
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Upload fehlgeschlagen");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      // Create document record
+      await createDocumentMutation.mutateAsync({
+        title: formData.title,
+        document_type: formData.documentType as "invoice" | "other",
+        file_url: uploadData.url,
+        entity_type: entityType,
+        entity_id: entityId,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const createDocumentMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/documents", data);
+      const res = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Fehler beim Erstellen des Dokuments");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -105,26 +135,23 @@ export function DocumentManager({ entityType, entityId }: DocumentManagerProps) 
                     </FormItem>
                   )}
                 />
-                <UploadButton
-                  endpoint="document"
-                  onClientUploadComplete={(res: UploadResponse[]) => {
-                    if (res?.[0]) {
-                      const formData = form.getValues();
-                      createDocumentMutation.mutate({
-                        title: formData.title,
-                        document_type: formData.documentType,
-                        file_url: res[0].url,
-                        entity_type: entityType,
-                        entity_id: entityId,
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    const formData = form.getValues();
+                    try {
+                      await handleFileUpload(file, formData);
+                    } catch (error) {
+                      toast({
+                        title: "Fehler beim Hochladen",
+                        description: (error as Error).message,
+                        variant: "destructive",
                       });
                     }
-                  }}
-                  onUploadError={(error: Error) => {
-                    toast({
-                      title: "Fehler beim Hochladen",
-                      description: error.message,
-                      variant: "destructive",
-                    });
                   }}
                 />
               </form>

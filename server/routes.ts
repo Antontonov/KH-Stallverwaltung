@@ -4,11 +4,69 @@ import { db } from "@db";
 import { horses, appointments, users, documents, type SelectHorse, type SelectAppointment, type SelectDocument } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { setupAuth } from "./auth";
-import { createUploadthingExpressHandler } from "uploadthing/express";
-import { uploadRouter } from "./uploadthing";
+import multer from "multer";
+import path from "path";
+import express from "express";
+import fs from "fs";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // Configure multer for file uploads
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      const uploadDir = path.join(process.cwd(), "uploads", file.fieldname === "profile" ? "profiles" : "documents");
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+  });
+
+  const upload = multer({ 
+    storage: storage,
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB
+    },
+    fileFilter: function (req, file, cb) {
+      if (file.fieldname === "profile") {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new Error('Nur Bilder sind erlaubt'));
+        }
+      } else if (file.fieldname === "document") {
+        const allowedMimes = ['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!allowedMimes.includes(file.mimetype)) {
+          return cb(new Error('Nicht unterstütztes Dateiformat'));
+        }
+      }
+      cb(null, true);
+    }
+  });
+
+  // Create upload directories if they don't exist
+  const uploadDirs = ['profiles', 'documents'].map(dir => path.join(process.cwd(), 'uploads', dir));
+  uploadDirs.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  });
+
+  // Upload endpoints
+  app.post("/api/upload/profile", upload.single('profile'), (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.file) return res.status(400).send("Keine Datei hochgeladen");
+    res.json({ url: `/uploads/${req.file.fieldname}/${req.file.filename}` });
+  });
+
+  app.post("/api/upload/document", upload.single('document'), (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.file) return res.status(400).send("Keine Datei hochgeladen");
+    res.json({ url: `/uploads/${req.file.fieldname}/${req.file.filename}` });
+  });
+
+  // Serve uploaded files
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
   // Document management
   app.get("/api/documents/:entityType/:entityId", async (req, res) => {
@@ -105,8 +163,6 @@ export function registerRoutes(app: Express): Server {
     res.json(user[0]);
   });
 
-  // UploadThing route handler
-  app.use("/api/uploadthing", createUploadthingExpressHandler(uploadRouter));
 
   const httpServer = createServer(app);
   return httpServer;

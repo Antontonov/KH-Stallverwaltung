@@ -1,7 +1,8 @@
-import { UploadButton } from "@/lib/uploadthing";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+// import { apiRequest } from "@/lib/queryClient"; //Removed as per intention
 
 interface ProfileImageUploadProps {
   currentImageUrl?: string | null;
@@ -9,19 +10,42 @@ interface ProfileImageUploadProps {
   className?: string;
 }
 
-type UploadResponse = {
-  name: string;
-  size: number;
-  key: string;
-  url: string;
-};
-
 export function ProfileImageUpload({
   currentImageUrl,
   onUploadComplete,
   className,
 }: ProfileImageUploadProps) {
   const { toast } = useToast();
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("profile", file);
+
+    try {
+      const response = await fetch("/api/upload/profile", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload fehlgeschlagen");
+      }
+
+      const data = await response.json();
+      onUploadComplete(data.url);
+      toast({ title: "Profilbild erfolgreich aktualisiert" });
+    } catch (error) {
+      toast({
+        title: "Fehler beim Hochladen",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className={cn("relative group", className)}>
@@ -39,22 +63,17 @@ export function ProfileImageUpload({
         )}
       </div>
       <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-        <UploadButton
-          endpoint="profileImage"
-          onClientUploadComplete={(res: UploadResponse[]) => {
-            if (res?.[0]) {
-              onUploadComplete(res[0].url);
-              toast({ title: "Profilbild erfolgreich aktualisiert" });
-            }
-          }}
-          onUploadError={(error: Error) => {
-            toast({
-              title: "Fehler beim Hochladen",
-              description: error.message,
-              variant: "destructive",
-            });
-          }}
-        />
+        <label className="cursor-pointer">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button variant="secondary" size="sm">
+            Bild ändern
+          </Button>
+        </label>
       </div>
     </div>
   );
